@@ -2,20 +2,20 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
+	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"github.com/strrl/goat-on-kube/goat-exporter/internal/collector"
 )
-
-type Config struct {
-	Port string `mapstructure:"port"`
-}
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -37,15 +37,10 @@ func newRootCommand() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := loadConfig()
 
-			slog.Info("starting goat-exporter", slog.String("port", cfg.Port))
 			if err != nil {
 				return err
 			}
-
-			ctx := cmd.Context()
-			<-ctx.Done()
-			slog.Info("shutting down goat-exporter")
-			return nil
+			return run(cmd.Context(), cfg)
 		},
 	}
 
@@ -54,26 +49,52 @@ func newRootCommand() *cobra.Command {
 	return cmd
 }
 
-func initConfig() {
-	viper.AutomaticEnv()
+func run(ctx context.Context, cfg Config) error {
+	slog.Info(
+		"starting goat-exporter",
+		slog.String("port", cfg.Port),
+		slog.String("rpc_node", cfg.RPCNode),
+	)
 
-	viper.SetDefault("port", "8080")
-}
+	reg := prometheus.NewRegistry()
 
-func loadConfig() (Config, error) {
-	var cfg Config
-	if err := viper.Unmarshal(&cfg); err != nil {
-		return Config{}, fmt.Errorf("load config: %w", err)
+	rpcCollector, err := collector.NewGethRPCCollector(cfg.RPCNode)
+	if err != nil {
+		return fmt.Errorf("init collector: %w", err)
 	}
-	if err := validateConfig(cfg); err != nil {
-		return Config{}, err
-	}
-	return cfg, nil
-}
+	defer rpcCollector.Close()
 
-func validateConfig(cfg Config) error {
-	if strings.TrimSpace(cfg.Port) == "" {
-		return fmt.Errorf("port cannot be empty")
+	if err := reg.Register(rpcCollector); err != nil {
+		return fmt.Errorf("register collector: %w", err)
 	}
+
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+
+	srv := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: mux,
+	}
+
+	errCh := make(chan error, 1)
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errCh <- fmt.Errorf("http server: %w", err)
+		}
+	}()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("shutdown http server: %w", err)
+	}
+	slog.Info("shutting down goat-exporter")
 	return nil
 }
