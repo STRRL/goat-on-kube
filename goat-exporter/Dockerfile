@@ -11,7 +11,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o goat-exporter ./c
 FROM debian:bookworm-slim
 
 LABEL org.opencontainers.image.title="goat-exporter"
-LABEL org.opencontainers.image.description="Prometheus exporter for GOAT metrics from Ethereum nodes"
+LABEL org.opencontainers.image.description="Prometheus exporter for GOAT network node metrics"
 LABEL org.opencontainers.image.source="https://github.com/strrl/goat-on-kube"
 
 RUN apt-get update && \
