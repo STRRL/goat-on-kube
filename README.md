@@ -6,7 +6,9 @@ This is a monorepo which contains
 - helm chart to deploy goat-exporter
 - helm chart to deploy goat rpc node
 
-## Get Started
+![Goat Exporter Grafana Dashboard](./static/goat-exporter-grafana.png)
+
+## Quick Start
 
 ### setup kubernetes cluster
 
@@ -74,3 +76,6 @@ Get the default password:
 ```bash
 kubectl get secret -n monitoring kube-prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
 ```
+
+load <https://grafana.com/grafana/dashboards/24198> to display metrics;
+
