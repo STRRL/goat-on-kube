@@ -35,8 +35,11 @@ helm upgrade --install goat-exporter \
   --namespace goat-exporter \
   --create-namespace \
   --set secret.goatRpcNode='https://rpc.goat.network' \
-  --set serviceMonitor.enabled='true'
+  --set serviceMonitor.enabled='true' \
+  --set ingress.enabled='true'
 ```
+
+Access goat-exporter at `http://goat-exporter.127.0.0.1.nip.io/metrics` (requires `minikube tunnel`)
 
 ### access the grafana
 
