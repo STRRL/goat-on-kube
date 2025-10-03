@@ -1,0 +1,37 @@
+{{- if .Values.persistence.geth.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "goat.fullname" . }}-geth
+  labels:
+    {{- include "goat.labels" . | nindent 4 }}
+    component: geth
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.persistence.geth.storageClass }}
+  storageClassName: {{ .Values.persistence.geth.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.geth.size }}
+---
+{{- end }}
+{{- if .Values.persistence.goat.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "goat.fullname" . }}-goat
+  labels:
+    {{- include "goat.labels" . | nindent 4 }}
+    component: goat
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.persistence.goat.storageClass }}
+  storageClassName: {{ .Values.persistence.goat.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.goat.size }}
+{{- end }}

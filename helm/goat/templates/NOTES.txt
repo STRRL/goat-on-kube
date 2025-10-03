@@ -1,0 +1,27 @@
+GOAT Network mainnet node has been deployed!
+
+To access your GOAT node:
+
+{{- if .Values.ingress.enabled }}
+
+1. Access via Ingress:
+   - Geth HTTP-RPC: http://{{ .Values.ingress.gethHost }}
+   - GOAT API:      http://{{ .Values.ingress.goatHost }}
+
+   Note: Make sure to run `minikube tunnel` to access the ingress
+
+{{- else }}
+
+1. Port-forward to access the services:
+   kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "goat.fullname" . }} 8545:8545 8546:8546 9090:9090 1317:1317
+
+2. Then access:
+   - Geth HTTP-RPC: http://localhost:8545
+   - Geth WebSocket: ws://localhost:8546
+   - GOAT gRPC:     localhost:9090
+   - GOAT API:      http://localhost:1317
+
+{{- end }}
+
+To check the status of your deployment:
+   kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}

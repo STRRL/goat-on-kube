@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "goat.fullname" . }}
+  labels:
+    {{- include "goat.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "goat.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "goat.labels" . | nindent 8 }}
+    spec:
+      shareProcessNamespace: true
+      containers:
+        - name: geth
+          image: ghcr.io/goatnetwork/goat-geth:v0.3.3
+          imagePullPolicy: IfNotPresent
+          args:
+            - --goat=mainnet
+            - --http
+            - --http.api=eth,net,web3
+            - --http.addr=0.0.0.0
+            - --http.vhosts=*
+            - --http.corsdomain=*
+            - --ws
+            - --ws.origins=*
+            - --ws.addr=0.0.0.0
+            - --ws.api=eth,net,web3
+          ports:
+            - name: http
+              containerPort: 8545
+              protocol: TCP
+            - name: ws
+              containerPort: 8546
+              protocol: TCP
+          volumeMounts:
+            - name: geth-data
+              mountPath: /root/.ethereum
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        - name: goat
+          image: ghcr.io/goatnetwork/goat:v0.3.3
+          imagePullPolicy: IfNotPresent
+          args:
+            - start
+            - --goat.geth=/geth/geth.ipc
+            - --chain-id=goat-mainnet
+            - --grpc.address=0.0.0.0:9090
+            - --api.enable
+            - --api.address=tcp://0.0.0.0:1317
+          ports:
+            - name: grpc
+              containerPort: 9090
+              protocol: TCP
+            - name: api
+              containerPort: 1317
+              protocol: TCP
+          volumeMounts:
+            - name: goat-data
+              mountPath: /root/.goat
+            - name: geth-data
+              mountPath: /geth
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        {{- if .Values.persistence.geth.enabled }}
+        - name: geth-data
+          persistentVolumeClaim:
+            claimName: {{ include "goat.fullname" . }}-geth
+        {{- else }}
+        - name: geth-data
+          emptyDir: {}
+        {{- end }}
+        {{- if .Values.persistence.goat.enabled }}
+        - name: goat-data
+          persistentVolumeClaim:
+            claimName: {{ include "goat.fullname" . }}-goat
+        {{- else }}
+        - name: goat-data
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

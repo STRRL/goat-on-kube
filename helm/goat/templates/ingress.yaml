@@ -1,0 +1,69 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "goat.fullname" . }}-geth
+  labels:
+    {{- include "goat.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.gethHost }}
+      {{- with (first .Values.ingress.tls) }}
+      secretName: {{ .secretName }}-geth
+      {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.gethHost }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "goat.fullname" . }}
+                port:
+                  number: 8545
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "goat.fullname" . }}-api
+  labels:
+    {{- include "goat.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.goatHost }}
+      {{- with (first .Values.ingress.tls) }}
+      secretName: {{ .secretName }}-api
+      {{- end }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.goatHost }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "goat.fullname" . }}
+                port:
+                  number: 1317
+{{- end }}

@@ -13,6 +13,8 @@ This is a monorepo which contains
 ```bash
 minikube start
 minikube addons enable ingress
+minikbue addons enable storage-provisioner
+minikube addons enable default-storageclass
 ```
 
 ### setup prometheus / grafana stack
@@ -27,14 +29,29 @@ helm install kube-prometheus-stack \
   --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false
 ```
 
-### install goat-exporter
+### install goat rpc node by helm
+
+```bash
+helm upgrade --install goat \
+  ./helm/goat \
+  --namespace goat \
+  --create-namespace \
+  --set ingress.enabled=true
+```
+
+**Access via Ingress** (requires `minikube tunnel`):
+- Geth HTTP-RPC API: `http://geth.127.0.0.1.nip.io`
+- GOAT REST API: `http://goat.127.0.0.1.nip.io`
+
+
+### install goat-exporter by helm
 
 ```bash
 helm upgrade --install goat-exporter \
   ./helm/goat-exporter \
   --namespace goat-exporter \
   --create-namespace \
-  --set secret.goatRpcNode='https://rpc.goat.network' \
+  --set secret.goatRpcNode='http://goat.goat.svc.cluster.local:8545' \
   --set serviceMonitor.enabled='true' \
   --set ingress.enabled='true'
 ```

@@ -1,0 +1,27 @@
+replicaCount: 1
+
+persistence:
+  geth:
+    enabled: true
+    storageClass: ""
+    size: 100Gi
+  goat:
+    enabled: true
+    storageClass: ""
+    size: 100Gi
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  gethHost: geth.127.0.0.1.nip.io
+  goatHost: goat.127.0.0.1.nip.io
+  tls: []
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
