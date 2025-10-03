@@ -141,8 +141,13 @@ func (c *GethRPCCollector) Collect(ch chan<- prometheus.Metric) {
 			return
 		}
 
+		// syncProgress is nil when the node is fully synced (not actively syncing).
+		// This is normal behavior - eth_syncing returns false when sync is complete.
+		// See: https://github.com/ethereum/go-ethereum/blob/1e4b39ed122f475ac3f776ae66c8d065e845a84e/ethclient/ethclient.go#L353
+
 		if syncProgress == nil {
-			slog.Error("fetch sync progress", slog.String("error", "sync progress is nil"), slog.String("endpoint", c.endpoint))
+			// Node is fully synced, report sync_done=1 and zero out other sync metrics
+			ch <- prometheus.MustNewConstMetric(c.syncDoneDesc, prometheus.GaugeValue, 1)
 			return
 		}
 
