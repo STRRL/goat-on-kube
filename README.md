@@ -79,3 +79,6 @@ kubectl get secret -n monitoring kube-prometheus-stack-grafana -o jsonpath="{.da
 
 load <https://grafana.com/grafana/dashboards/24198> to display metrics;
 
+## Known Issues
+
+- Syncing Status is always shown as 'not syncing', while the block height is still increasing. geth client method `SyncProgress` also return `nil, nil` which means no err and no data. Ref: <https://github.com/STRRL/goat-on-kube/blob/9c7598e805ced3cb1a76d83b920357948521b406/goat-exporter/internal/collector/collector.go#L144-L152>
